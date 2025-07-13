@@ -1,14 +1,12 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>Финансовый планировщик</title>
-</head>
 <body>
-  <h1>Финансовый планировщик</h1>
-  <div class="balance" id="balance">Баланс: 0 ₽</div>
-  <div class="form">
+    <h1>Финансовый планировщик</h1>
+
+  <div class="left-panel">
+    <div class="balance" id="balance">Баланс: 0 ₽</div>
+
     <input type="number" id="amount" placeholder="Сумма" />
+    <input type="month" id="date" />
+
     <select id="category">
       <option value="">Выберите категорию</option>
       <option>Питание</option>
@@ -20,15 +18,38 @@
       <option>Коммунальные услуги</option>
       <option>Прочее</option>
     </select>
-  <button id="add-expense">Добавить расход</button>
-  <button id="add-income">Добавить доход</button>
-  <button id="export-json">Сохранить в JSON</button>
-  <button id="import-json">Загрузить из JSON</button>
-  <input type="file" id="import-file" accept=".json" style="display: none;" />
+
+    <button id="add-expense">Добавить расход</button>
+    <button id="add-income">Добавить доход</button>
+
+    <input type="number" id="saving-amount" placeholder="Сумма в накопление" />
+    <button id="set-saving">Запланировать накопление</button>
+
+    <input type="number" id="monthly-limit" placeholder="Лимит на месяц" />
+    <button id="set-limit">Установить лимит</button>
+
+    <input type="text" id="note" placeholder="Прогноз/заметка на месяц" />
+    <button id="save-note">Сохранить прогноз</button>
+
+    <input type="text" id="reminder-text" placeholder="Добавить напоминание" />
+    <button id="add-reminder">Добавить</button>
+
+    <button id="export-json">Сохранить в JSON</button>
+    <button id="import-json">Загрузить из JSON</button>
+    <input type="file" id="import-file" accept=".json" style="display: none;" />
+
+    <label for="month-filter">Выберите месяц:</label>
+    <select id="month-filter"></select>
   </div>
 
-  <div class="transactions" id="transactions"></div>
+  <div class="transactions-reminders">
+    <div class="transactions" id="transactions"></div>
 
-  <canvas id="expenseChart" width="50" height="50"></canvas>
+    <h2>Напоминания о платежах</h2>
+    <ul id="reminders"></ul>
+
+    <h2>Диаграмма расходов</h2>
+    <canvas id="expenseChart"></canvas>
+  </div>
+
 </body>
-</html>

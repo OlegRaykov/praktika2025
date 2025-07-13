@@ -2,22 +2,20 @@ body {
   font-family: Arial, sans-serif;
   background: #f0f2f5;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: row;
+  justify-content: space-between;
   padding: 30px;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 h1 {
+  width: 100%;
+  text-align: center;
   margin-bottom: 10px;
 }
 
-.balance {
-  font-size: 24px;
-  margin: 10px 0;
-}
-
-.form {
-  margin: 20px 0;
+.left-panel {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -27,26 +25,39 @@ h1 {
 input, select, button {
   padding: 10px;
   font-size: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.expense-btn {
-  background-color: #f44336;
-  color: white;
-  border: none;
+button {
   cursor: pointer;
 }
 
+.balance {
+  font-size: 24px;
+  margin: 10px 0;
+}
+
+.transactions-reminders {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+  min-width: 300px;
+}
+
 .transactions {
-  width: 300px;
-  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .transaction {
   background: #fff;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-left: 5px solid;
+  padding: 12px;
+  border-left: 6px solid;
   box-shadow: 0 0 5px rgba(0,0,0,0.1);
+  width: 100%;
 }
 
 .income {
@@ -55,4 +66,33 @@ input, select, button {
 
 .expense {
   border-color: red;
+}
+
+#reminders {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#reminders li {
+  background: #fff;
+  margin: 5px 0;
+  padding: 10px;
+  border-left: 5px solid #2196f3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reminder-done {
+  border-left-color: green;
+  color: green;
+  font-weight: bold;
+}
+
+#expenseChart {
+  width: 200px !important;
+  height: 200px !important;
+  max-width: 200px;
+  max-height: 200px;
 }
