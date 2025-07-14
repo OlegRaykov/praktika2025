@@ -9,64 +9,139 @@ let notes = {};
 let reminders = [];
 
 const balanceEl = document.getElementById('balance');
-const transactionsEl = document.getElementById('transactions');
-const chartCtx = document.getElementById('expenseChart').getContext('2d');
+const limitEl = document.getElementById('limitDisplay');
+const savingsEl = document.getElementById('savingsDisplay');
+const amountEl = document.getElementById('amount');
+const categoryEl = document.getElementById('category');
+const dateEl = document.getElementById('date');
 const monthFilterEl = document.getElementById('month-filter');
+const noteInput = document.getElementById('note');
+const noteList = document.getElementById('notesList');
+const reminderTextEl = document.getElementById('reminder-text');
+const remindersEl = document.getElementById('reminders');
+const chartCtx = document.getElementById('expenseChart').getContext('2d');
 let currentChart;
 
 function updateBalance() {
   balanceEl.textContent = `Баланс: ${balance.toFixed(2)} ₽`;
 }
 
-function renderTransactionList() {
-  transactionsEl.innerHTML = '';
-  const selectedMonth = monthFilterEl.value;
-
-  transactions
-    .filter(tx => !selectedMonth || tx.date === selectedMonth)
-    .forEach(tx => {
-      const div = document.createElement('div');
-      div.className = `transaction ${tx.isIncome ? 'income' : 'expense'}`;
-      let text = `${tx.amount.toFixed(2)} ₽`;
-      if (tx.isIncome) {
-        text = `+${text}`;
-      } else {
-        text = `-${text} ₽ — ${tx.category}`;
-      }
-      text += ` (${tx.date})`;
-      div.textContent = text;
-      transactionsEl.appendChild(div);
-    });
+function updateLimitDisplay() {
+  const date = monthFilterEl.value;
+  const limit = limits[date];
+  limitEl.textContent = limit ? `Лимит: ${limit} ₽` : 'Лимит: не установлен';
 }
 
-function updateMonthFilter() {
-  const months = [...new Set(transactions.map(tx => tx.date))];
-  monthFilterEl.innerHTML = '<option value="">Все месяцы</option>';
+function updateSavingsDisplay() {
+  const date = monthFilterEl.value;
+  const saving = savings[date] || 0;
+  savingsEl.textContent = saving ? `Накопления: ${saving} ₽` : '';
+}
+
+function updateMonthOptions() {
+  const months = [...new Set(transactions.map(t => t.date))];
+  monthFilterEl.innerHTML = '';
   months.forEach(m => {
     const option = document.createElement('option');
-    const [year, month] = m.split('-');
-    const monthName = new Date(`${m}-01`).toLocaleString('ru-RU', { month: 'long' });
     option.value = m;
-    option.textContent = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
+    option.textContent = m;
     monthFilterEl.appendChild(option);
   });
 }
 
-function renderExpenseChart() {
+function renderTransactionList() {
+  const txContainer = document.getElementById('transactions');
+  txContainer.innerHTML = '';
+
+  const selected = monthFilterEl.value;
+  const filtered = transactions.filter(t => t.date === selected);
+
+  filtered.forEach(tx => {
+    const div = document.createElement('div');
+    div.className = `transaction ${tx.isIncome ? 'income' : 'expense'}`;
+    div.textContent = tx.isIncome
+      ? `+${tx.amount.toFixed(2)} ₽`
+      : `-${tx.amount.toFixed(2)} ₽ — ${tx.category}`;
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '✕';
+    delBtn.className = 'delete-btn';
+    delBtn.onclick = () => {
+      transactions = transactions.filter(t => t.id !== tx.id);
+      balance += tx.isIncome ? -tx.amount : tx.amount;
+      updateAll();
+    };
+    div.appendChild(delBtn);
+    txContainer.appendChild(div);
+  });
+}
+
+function renderReminders() {
+  remindersEl.innerHTML = '';
+  reminders.forEach((r, i) => {
+    const li = document.createElement('li');
+    li.textContent = r.text;
+    if (r.done) {
+      li.classList.add('reminder-done');
+      li.textContent += ' (оплачено)';
+    }
+
+    const doneBtn = document.createElement('button');
+    doneBtn.textContent = '✔';
+    doneBtn.className = 'delete-btn';
+    doneBtn.onclick = () => {
+      reminders[i].done = true;
+      renderReminders();
+    };
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '✕';
+    delBtn.className = 'delete-btn';
+    delBtn.onclick = () => {
+      reminders.splice(i, 1);
+      renderReminders();
+    };
+
+    if (!r.done) li.appendChild(doneBtn);
+    li.appendChild(delBtn);
+    remindersEl.appendChild(li);
+  });
+}
+
+function renderNotes() {
+  noteList.innerHTML = '';
+  const date = monthFilterEl.value;
+  if (!notes[date]) return;
+
+  notes[date].forEach((note, i) => {
+    const li = document.createElement('li');
+    li.textContent = note;
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '✕';
+    delBtn.className = 'delete-btn';
+    delBtn.onclick = () => {
+      notes[date].splice(i, 1);
+      renderNotes();
+    };
+    li.appendChild(delBtn);
+    noteList.appendChild(li);
+  });
+}
+
+function updateChart() {
   if (currentChart) currentChart.destroy();
-  const selectedMonth = monthFilterEl.value;
-  const monthlyExpenses = transactions.filter(tx => !tx.isIncome && (!selectedMonth || tx.date === selectedMonth));
+
+  const selected = monthFilterEl.value;
+  const filtered = transactions.filter(t => t.date === selected && !t.isIncome);
 
   const categorySums = {};
-  monthlyExpenses.forEach(tx => {
-    if (!categorySums[tx.category]) categorySums[tx.category] = 0;
-    categorySums[tx.category] += tx.amount;
+  filtered.forEach(t => {
+    categorySums[t.category] = (categorySums[t.category] || 0) + t.amount;
   });
 
   const data = {
     labels: Object.keys(categorySums),
     datasets: [{
-      label: 'Расходы',
       data: Object.values(categorySums),
       backgroundColor: ['#f44336', '#2196f3', '#4caf50', '#ff9800', '#9c27b0', '#795548', '#607d8b', '#e91e63']
     }]
@@ -74,113 +149,116 @@ function renderExpenseChart() {
 
   currentChart = new Chart(chartCtx, {
     type: 'pie',
-    data
+    data,
+    options: {
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            font: { size: 12 },
+            padding: 10
+          }
+        }
+      }
+    }
   });
 }
 
-function checkLimit(date) {
-  const monthLimit = limits[date];
-  if (!monthLimit) return;
-  const total = transactions.filter(tx => !tx.isIncome && tx.date === date).reduce((sum, tx) => sum + tx.amount, 0);
-  if (total > monthLimit) {
-    alert(`Превышен лимит расходов на ${date}! Потрачено: ${total}, лимит: ${monthLimit}`);
-  }
-}
-
-function checkSavings(date) {
-  const target = savings[date];
-  if (!target) return;
-  const incomeSum = transactions.filter(tx => tx.isIncome && tx.date === date).reduce((sum, tx) => sum + tx.amount, 0);
-  const expenseSum = transactions.filter(tx => !tx.isIncome && tx.date === date).reduce((sum, tx) => sum + tx.amount, 0);
-  const leftover = incomeSum - expenseSum;
-  if (leftover >= target) {
-    alert(`Вы можете отложить ${target} ₽, как планировали на ${date}`);
-  }
+function updateAll() {
+  updateBalance();
+  updateLimitDisplay();
+  updateSavingsDisplay();
+  updateMonthOptions();
+  renderTransactionList();
+  renderReminders();
+  renderNotes();
+  updateChart();
 }
 
 document.getElementById('add-expense').onclick = () => {
-  const amount = parseFloat(document.getElementById('amount').value);
-  const category = document.getElementById('category').value;
-  const date = document.getElementById('date').value;
-  if (!amount || !category || !date) return alert('Заполните все поля!');
-  transactions.push({ amount, category, date, isIncome: false });
+  const amount = parseFloat(amountEl.value);
+  const category = categoryEl.value;
+  const date = dateEl.value;
+  if (!amount || !category || !date) return;
+
+  const id = Date.now() + Math.random();
+  transactions.push({ id, amount, category, date, isIncome: false });
   balance -= amount;
-  updateBalance();
-  updateMonthFilter();
-  renderTransactionList();
-  renderExpenseChart();
-  checkLimit(date);
+
+  if (limits[date] && filteredSum(date) > limits[date]) {
+    alert('Лимит превышен!');
+  }
+
+  updateAll();
 };
 
 document.getElementById('add-income').onclick = () => {
-  const amount = parseFloat(document.getElementById('amount').value);
-  const date = document.getElementById('date').value;
-  if (!amount || !date) return alert('Укажите сумму и дату!');
-  transactions.push({ amount, date, isIncome: true });
+  const amount = parseFloat(amountEl.value);
+  const date = dateEl.value;
+  if (!amount || !date) return;
+
+  const id = Date.now() + Math.random();
+  transactions.push({ id, amount, date, isIncome: true });
   balance += amount;
-  updateBalance();
-  updateMonthFilter();
-  renderTransactionList();
-  renderExpenseChart();
-  checkSavings(date);
+  updateAll();
 };
 
 document.getElementById('set-saving').onclick = () => {
   const amount = parseFloat(document.getElementById('saving-amount').value);
-  const date = document.getElementById('date').value;
-  if (!amount || !date) return alert('Введите сумму и дату!');
-  savings[date] = amount;
-  alert(`Запланировано отложить ${amount} ₽ в ${date}`);
+  const date = dateEl.value;
+  if (!amount || !date) return;
+
+  savings[date] = (savings[date] || 0) + amount;
+  balance -= amount;
+  updateAll();
+};
+
+document.getElementById('clear-saving').onclick = () => {
+  const date = dateEl.value;
+  balance += savings[date] || 0;
+  delete savings[date];
+  updateAll();
 };
 
 document.getElementById('set-limit').onclick = () => {
-  const amount = parseFloat(document.getElementById('monthly-limit').value);
-  const date = document.getElementById('date').value;
-  if (!amount || !date) return alert('Введите лимит и дату!');
-  limits[date] = amount;
-  alert(`Установлен лимит ${amount} ₽ на ${date}`);
+  const limit = parseFloat(document.getElementById('monthly-limit').value);
+  const date = dateEl.value;
+  if (!limit || !date) return;
+  limits[date] = limit;
+  updateAll();
 };
 
 document.getElementById('save-note').onclick = () => {
-  const text = document.getElementById('note').value;
-  const date = document.getElementById('date').value;
-  if (!text || !date) return alert('Введите дату и текст!');
-  notes[date] = text;
-  alert('Заметка сохранена!');
+  const text = noteInput.value;
+  const date = dateEl.value;
+  if (!text || !date) return;
+  if (!notes[date]) notes[date] = [];
+  notes[date].push(text);
+  updateAll();
 };
 
 document.getElementById('add-reminder').onclick = () => {
-  const text = document.getElementById('reminder-text').value;
+  const text = reminderTextEl.value;
   if (!text) return;
   reminders.push({ text, done: false });
   renderReminders();
 };
 
-function renderReminders() {
-  const ul = document.getElementById('reminders');
-  ul.innerHTML = '';
-  reminders.forEach((r, i) => {
-    const li = document.createElement('li');
-    li.className = r.done ? 'reminder-done' : '';
-    li.textContent = r.text + (r.done ? ' (оплачено)' : '');
-    const doneBtn = document.createElement('button');
-    doneBtn.textContent = 'Готово';
-    doneBtn.onclick = () => {
-      reminders[i].done = true;
-      renderReminders();
-    };
-    const delBtn = document.createElement('button');
-    delBtn.textContent = 'Удалить';
-    delBtn.onclick = () => {
-      reminders.splice(i, 1);
-      renderReminders();
-    };
-    li.appendChild(doneBtn);
-    li.appendChild(delBtn);
-    ul.appendChild(li);
-  });
+monthFilterEl.onchange = () => {
+  renderTransactionList();
+  renderNotes();
+  updateChart();
+  updateLimitDisplay();
+  updateSavingsDisplay();
+};
+
+function filteredSum(date) {
+  return transactions
+    .filter(t => t.date === date && !t.isIncome)
+    .reduce((sum, t) => sum + t.amount, 0);
 }
 
+// Export / Import
 document.getElementById('export-json').onclick = () => {
   const data = {
     balance,
@@ -190,20 +268,18 @@ document.getElementById('export-json').onclick = () => {
     notes,
     reminders
   };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const a = document.createElement('a');
-  a.href = url;
+  a.href = URL.createObjectURL(blob);
   a.download = 'finance-data.json';
   a.click();
-  URL.revokeObjectURL(url);
 };
 
 document.getElementById('import-json').onclick = () => {
   document.getElementById('import-file').click();
 };
 
-document.getElementById('import-file').addEventListener('change', e => {
+document.getElementById('import-file').onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -216,19 +292,12 @@ document.getElementById('import-file').addEventListener('change', e => {
       limits = data.limits || {};
       notes = data.notes || {};
       reminders = data.reminders || [];
-      updateBalance();
-      updateMonthFilter();
-      renderTransactionList();
-      renderExpenseChart();
-      renderReminders();
+      updateAll();
     } catch (e) {
-      alert('Ошибка чтения файла');
+      alert('Ошибка при загрузке файла!');
     }
   };
   reader.readAsText(file);
-});
+};
 
-monthFilterEl.addEventListener('change', () => {
-  renderTransactionList();
-  renderExpenseChart();
-});
+updateAll();

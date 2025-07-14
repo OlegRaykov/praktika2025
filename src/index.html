@@ -1,8 +1,10 @@
 <body>
     <h1>Финансовый планировщик</h1>
 
-  <div class="left-panel">
+    <div class="left-panel">
     <div class="balance" id="balance">Баланс: 0 ₽</div>
+    <div class="limit" id="limitDisplay">Лимит: не установлен</div>
+    <div class="savings-display" id="savingsDisplay"></div>
 
     <input type="number" id="amount" placeholder="Сумма" />
     <input type="month" id="date" />
@@ -24,6 +26,7 @@
 
     <input type="number" id="saving-amount" placeholder="Сумма в накопление" />
     <button id="set-saving">Запланировать накопление</button>
+    <button id="clear-saving">Сбросить накопление</button>
 
     <input type="number" id="monthly-limit" placeholder="Лимит на месяц" />
     <button id="set-limit">Установить лимит</button>
@@ -47,6 +50,9 @@
 
     <h2>Напоминания о платежах</h2>
     <ul id="reminders"></ul>
+
+    <h2>Прогнозы</h2>
+    <ul id="notesList"></ul>
 
     <h2>Диаграмма расходов</h2>
     <canvas id="expenseChart"></canvas>
